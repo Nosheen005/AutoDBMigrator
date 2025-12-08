@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
-from testdata import tables as test_tables
+
+from excel_reader import read_excel_for_controller, ExcelReadError
+from sql_generator import generate_create_table_sql
+
 
 class TableEditor(tk.Frame):
     def __init__(self, parent, controller):
@@ -9,6 +12,13 @@ class TableEditor(tk.Frame):
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
+
+        # Internal storage:
+        # - self.tables_data: {table_name: [col1, col2, ...]} for THIS screen
+        self.tables_data: dict[str, list[str]] = {}
+        self.table_frames = {}       # {table_name: LabelFrame}
+        self.table_listboxes = {}    # {table_name: Listbox}
+        self.move_dropdowns = {}     # {table_name: Combobox}
 
         # Title
         label = tk.Label(self, text="Table Editor", font=("Arial", 14))
@@ -19,12 +29,29 @@ class TableEditor(tk.Frame):
         button_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
         button_frame.grid_columnconfigure(0, weight=1)
 
-        tk.Button(button_frame, text="Go Back",
-                  command=lambda: controller.show_frame("ColumnSelector")).pack(side="left", padx=5)
-        tk.Button(button_frame, text="Add Table",
-                  command=self.add_table).pack(side="left", padx=5)
-        tk.Button(button_frame, text="Finish",
-                  command=self.finish).pack(side="left", padx=5)
+        tk.Button(
+            button_frame,
+            text="Go Back",
+            command=lambda: controller.show_frame("ColumnSelector")
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            button_frame,
+            text="Add Table",
+            command=self.add_table
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            button_frame,
+            text="Reload from Excel",
+            command=self.load_from_excel
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            button_frame,
+            text="Finish",
+            command=self.finish
+        ).pack(side="left", padx=5)
 
         # Canvas for tables
         canvas_frame = tk.Frame(self)
@@ -43,31 +70,60 @@ class TableEditor(tk.Frame):
 
         # Bind resize
         self.tables_canvas.bind("<Configure>", self._on_canvas_configure)
-        self.inner_frame.bind("<Configure>", lambda e: self.tables_canvas.configure(scrollregion=self.tables_canvas.bbox("all")))
+        self.inner_frame.bind(
+            "<Configure>",
+            lambda e: self.tables_canvas.configure(scrollregion=self.tables_canvas.bbox("all"))
+        )
 
         # Bind mouse wheel scrolling anywhere over the canvas
         self.tables_canvas.bind("<Enter>", lambda e: self.tables_canvas.bind_all("<MouseWheel>", self._on_mousewheel))
         self.tables_canvas.bind("<Leave>", lambda e: self.tables_canvas.unbind_all("<MouseWheel>"))
 
-        # Internal storage
-        self.table_frames = {}       # {table_name: LabelFrame}
-        self.table_listboxes = {}    # {table_name: Listbox}
-        self.move_dropdowns = {}     # {table_name: Combobox}
+    # ------------- called by controller when this frame is shown -------------
+    def on_show(self):
+        """
+        This will be called by the main controller when the TableEditor
+        screen is shown. It loads the latest data from Excel.
+        """
+        self.load_from_excel()
 
-        # Populate tables from dummy data
-        self.tables_data = {k: v.copy() for k, v in test_tables.items()}
+    # ---------------- Load tables from Excel via excel_reader ----------------
+    def load_from_excel(self):
+        """
+        Use read_excel_for_controller(self.controller) to get table->columns
+        from the Excel file, then rebuild the UI.
+        """
+        try:
+            # This uses:
+            #   controller.filepath
+            #   controller.tables_data  (ranges from ColumnSelector)
+            self.tables_data = read_excel_for_controller(self.controller)
+        except ExcelReadError as exc:
+            messagebox.showerror("Excel Read Error", str(exc))
+            return
+
+        # Clear existing GUI before repopulating
+        self.clear_tables()
         self.populate_tables()
+
+    # ---------------- Clear all existing table widgets ----------------
+    def clear_tables(self):
+        for frame in self.table_frames.values():
+            frame.destroy()
+        self.table_frames.clear()
+        self.table_listboxes.clear()
+        self.move_dropdowns.clear()
 
     # ---------------- Mouse wheel handler ----------------
     def _on_mousewheel(self, event):
-        self.tables_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        self.tables_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     # ---------------- Canvas configure ----------------
     def _on_canvas_configure(self, event):
         self.tables_canvas.itemconfig(self._inner_window, width=event.width)
         self.reposition_tables()
 
-    # ---------------- Populate tables ----------------
+    # ---------------- Populate tables (from self.tables_data) ----------------
     def populate_tables(self):
         for table_name, columns in self.tables_data.items():
             self.create_table_frame(table_name, columns)
@@ -83,7 +139,7 @@ class TableEditor(tk.Frame):
         frame = tk.LabelFrame(self.inner_frame, text=table_name, padx=10, pady=10)
         frame.pack_propagate(True)  # Allow frame to resize based on content
 
-        listbox = tk.Listbox(frame, selectmode="extended", height=min(10, len(columns)))
+        listbox = tk.Listbox(frame, selectmode="extended", height=min(10, len(columns) or 1))
         listbox.pack(fill="both", expand=True)
 
         for col in columns:
@@ -112,7 +168,11 @@ class TableEditor(tk.Frame):
 
         if listbox.size() == 0:
             # Show delete button if empty
-            tk.Button(frame.control_frame, text="Delete Table", command=lambda t=table_name: self.delete_table(t)).pack(side="left", padx=2)
+            tk.Button(
+                frame.control_frame,
+                text="Delete Table",
+                command=lambda t=table_name: self.delete_table(t)
+            ).pack(side="left", padx=2)
             if table_name in self.move_dropdowns:
                 del self.move_dropdowns[table_name]
         else:
@@ -122,16 +182,19 @@ class TableEditor(tk.Frame):
             self.move_dropdowns[table_name] = dropdown
             self.update_dropdown_options(table_name)
 
-            tk.Button(frame.control_frame, text="Move", command=lambda t=table_name: self.move_columns(t)).pack(side="left", padx=2)
+            tk.Button(
+                frame.control_frame,
+                text="Move",
+                command=lambda t=table_name: self.move_columns(t)
+            ).pack(side="left", padx=2)
 
     # ---------------- Update dropdown options ----------------
     def update_dropdown_options(self, source_table):
-        # Only update if the table has a dropdown
         if source_table not in self.move_dropdowns:
             return
 
         options = [t for t in self.table_frames.keys() if t != source_table]
-        self.move_dropdowns[source_table]['values'] = options
+        self.move_dropdowns[source_table]["values"] = options
         if options:
             self.move_dropdowns[source_table].current(0)
 
@@ -208,7 +271,6 @@ class TableEditor(tk.Frame):
 
     # ---------------- Add Table ----------------
     def add_table(self):
-        # Ask user for table name
         while True:
             table_name = simpledialog.askstring("New Table", "Enter table name:")
             if table_name is None:
@@ -222,13 +284,9 @@ class TableEditor(tk.Frame):
                 continue
             break
 
-        # Add to application dictionary
         self.tables_data[table_name] = []
-
-        # Create the GUI frame
         self.create_table_frame(table_name, [])
 
-        # Update dropdowns and layout
         for t in self.table_frames.keys():
             if t in self.move_dropdowns:
                 self.update_dropdown_options(t)
@@ -239,21 +297,28 @@ class TableEditor(tk.Frame):
         if self.tables_data[table_name]:  # Safety check
             return
 
-        # Destroy GUI
         self.table_frames[table_name].destroy()
 
-        # Remove from internal dictionaries
         del self.tables_data[table_name]
         del self.table_frames[table_name]
         del self.table_listboxes[table_name]
         if table_name in self.move_dropdowns:
             del self.move_dropdowns[table_name]
 
-        # Refresh layout and dropdowns
         for t in self.table_frames.keys():
             self.refresh_table_controls(t)
         self.reposition_tables()
 
     # ---------------- Finish Placeholder ----------------
+    #def finish(self):
+        # For now just show the resulting structure
+        # Later you can send this to the next step (DB migration etc.)
+       # messagebox.showinfo("Tables Result", repr(self.tables_data))
+    
+
+    # sql script generator 
+
+
     def finish(self):
-        pass
+        sql_script = generate_create_table_sql(self.tables_data)
+        messagebox.showinfo("Generated SQL Script", sql_script)
