@@ -62,3 +62,11 @@ class WelcomeScreen(tk.Frame):
             self.controller.show_frame("ColumnSelector")
         else:
             tk.messagebox.showwarning("No File Selected", "Please select an Excel file first.")
+    
+
+    # to go next 
+    def go_to_next_screen(self):
+        if self.controller.filepath:
+            self.controller.show_frame("ColumnSelector")
+        else:
+            messagebox.showwarning("No File Selected", "Please select an Excel file first.")
