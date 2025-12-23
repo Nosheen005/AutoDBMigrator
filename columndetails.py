@@ -1,0 +1,310 @@
+import tkinter as tk
+from tkinter import ttk
+
+dropdown_config = {
+    "type": {
+        "label": "Type",
+        "values": ["INT", "VARCHAR", "DATE", "FLOAT"],
+        "default": "VARCHAR"
+    },
+    "nullable": {
+        "label": "Nullable",
+        "values": ["True", "False"],
+        "default": "False"
+    },
+    "key": {
+        "label": "Key Type",
+        "values": ["None", "Primary Key", "Foreign Key"],
+        "default": "None"
+    },
+    "references_table": {
+        "label": "References Table",
+        "values": [],
+        "default": "",
+        "depends_on": "key"
+    },
+    "references_column": {
+        "label": "References Column",
+        "values": [],
+        "default": "",
+        "depends_on": "references_table"
+    }
+}
+
+
+
+class ColumnDetails(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        self.working_data = {}          #Compiled data
+        self.dropdown_details = {}      #Dropdown objects
+        self.text_vars = {}             #Dropdown information
+
+        self.selected_table = None      #Current table
+        self.selected_column = None     #Current column
+
+        # =====================
+        # Layout configuration
+        # =====================
+
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        # =====================
+        # Top button bar
+        # =====================
+        top_frame = tk.Frame(self)
+        top_frame.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+
+        tk.Button(
+            top_frame,
+            text="Go Back",
+            command=lambda: controller.show_frame("TableEditor")
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            top_frame,
+            text="Finish",
+            command=lambda: self.finish(self)
+        ).pack(side="left", padx=5)
+
+        # =====================
+        # Main content frame
+        # =====================
+
+        main_frame = tk.Frame(self)
+        main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+        main_frame.grid_columnconfigure(0, weight=2)
+        main_frame.grid_columnconfigure(1, weight=2)
+        main_frame.grid_columnconfigure(2, weight=3)
+        main_frame.grid_rowconfigure(0, weight=1)
+
+        # =====================
+        # TABLE SELECT
+        # =====================
+
+        table_frame = tk.LabelFrame(main_frame, text="Tables", padx=5, pady=5)
+        table_frame.grid(row=0, column=0, sticky="nsew", padx=5)
+
+        self.table_listbox = tk.Listbox(table_frame, exportselection=False)
+        self.table_listbox.pack(fill="both", expand=True)
+        self.table_listbox.bind("<<ListboxSelect>>", self.on_table_select)
+
+        # =====================
+        # COLUMN SELECT
+        # =====================
+
+        column_frame = tk.LabelFrame(main_frame, text="Columns", padx=5, pady=5)
+        column_frame.grid(row=0, column=1, sticky="nsew", padx=5)
+
+        self.column_listbox = tk.Listbox(column_frame, exportselection=False)
+        self.column_listbox.pack(fill="both", expand=True)
+        self.column_listbox.bind("<<ListboxSelect>>", self.on_column_select)
+
+        # =====================
+        # COLUMN DETAILS
+        # =====================
+
+        self.details_panel = tk.LabelFrame(
+            main_frame,
+            text="Column Settings",
+            padx=10,
+            pady=10
+        )
+        self.details_panel.grid(row=0, column=2, sticky="nsew", padx=5)
+
+    # =====================
+    # Refresh
+    # =====================
+
+    def refresh(self):
+        self.working_data.clear()
+        self.table_listbox.delete(0, "end")
+        self.column_listbox.delete(0, "end")
+
+        self.detailscreation(self.details_panel, dropdown_config)
+
+        for table, columns in self.controller.detailsdata.items():
+            self.working_data[table] = {
+                col: {
+                    "type": "VARCHAR",
+                    "nullable": "False",
+                    "key": "None",
+                    "references": {"table": "", "column": ""}
+                }
+                for col in columns
+            }
+            self.table_listbox.insert("end", table)
+
+        self.selected_table = None
+        self.selected_column = None
+        self.set_details_panel_state("disabled")
+
+
+    # =====================
+    # Selection Handlers
+    # =====================
+
+    def on_table_select(self, event):
+        if not self.table_listbox.curselection():
+            return
+
+        self.selected_table = self.table_listbox.get(
+            self.table_listbox.curselection()[0]
+        )
+
+        self.selected_column = None
+        self.column_listbox.delete(0, "end")
+
+        for col in self.working_data[self.selected_table]:
+            self.column_listbox.insert("end", col)
+
+        self.set_details_panel_state("disabled")
+
+    def on_column_select(self, event):
+        if not self.column_listbox.curselection():
+            return
+
+        self.selected_column = self.column_listbox.get(
+            self.column_listbox.curselection()[0]
+        )
+
+        meta = self.working_data[self.selected_table][self.selected_column]
+
+        for key, var in self.text_vars.items():
+            value = meta.get(key, "")
+            var.set(value)
+
+        self.set_details_panel_state("normal")
+        self.on_key_type_change()
+
+    # =====================
+    # Foreign Key Logic
+    # =====================
+
+    def on_key_type_change(self, event=None):
+        if not self.selected_table or not self.selected_column:
+            return
+
+        key_type = self.text_vars.get("key", tk.StringVar()).get()
+        meta = self.working_data[self.selected_table][self.selected_column]
+
+        if key_type == "Foreign Key":
+            tables = [t for t in self.working_data if t != self.selected_table]
+            self.dropdown_details["references_table"]["values"] = tables
+            self.dropdown_details["references_table"].configure(state="readonly")
+            self.dropdown_details["references_column"].configure(state="readonly")
+        else:
+            meta["references"] = {"table": "", "column": ""}
+            self.text_vars["references_table"].set("")
+            self.text_vars["references_column"].set("")
+            self.dropdown_details["references_table"].configure(state="disabled")
+            self.dropdown_details["references_column"].configure(state="disabled")
+
+            self.remove_invalid_foreign_keys()
+
+        self.save_metadata()
+
+    def update_ref_columns(self, event=None):
+        if not self.selected_table or not self.selected_column:
+            return
+
+        ref_table = self.text_vars["references_table"].get()
+
+        if not ref_table:
+            self.dropdown_details["references_column"]["values"] = []
+            return
+
+        pk_columns = [
+            col for col, meta in self.working_data[ref_table].items()
+            if meta.get("key") == "Primary Key"
+        ]
+
+        self.dropdown_details["references_column"]["values"] = pk_columns
+        self.text_vars["references_column"].set("")
+
+
+    def remove_invalid_foreign_keys(self):
+        for table, cols in self.working_data.items():
+            for col, meta in cols.items():
+                ref = meta.get("references", {})
+
+                ref_table = ref.get("table")
+                ref_column = ref.get("column")
+
+                if not ref_table or not ref_column:
+                    continue
+
+                if (
+                    ref_table not in self.working_data or
+                    ref_column not in self.working_data[ref_table] or
+                    self.working_data[ref_table][ref_column].get("key") != "Primary Key"
+                ):
+                    meta["references"] = {"table": "", "column": ""}
+                    meta["key"] = "None"
+
+    # =====================
+    # Persistence
+    # =====================
+
+    def save_metadata(self, event=None):
+        if not self.selected_table or not self.selected_column:
+            return
+
+        metadata = self.working_data[self.selected_table][self.selected_column]
+
+        for key, var in self.text_vars.items():
+            metadata[key] = var.get()
+
+
+    # =====================
+    # UI Helpers
+    # =====================
+
+    def set_details_panel_state(self, state):
+        for child in self.details_panel.winfo_children():
+            if isinstance(child, ttk.Combobox):
+                child.configure(state="disabled" if state == "disabled" else "readonly")
+
+    def detailscreation(self, frame, config):
+        """
+        Dynamically creates labeled readonly dropdowns.
+        config format: {"Name": {"label": String, "values": List}}
+        """
+
+        # Clear existing widgets
+        for child in frame.winfo_children():
+            child.destroy()
+
+        self.text_vars.clear()
+        self.dropdown_details.clear()
+
+        for key, meta in config.items():
+            label = meta["label"]
+            values = meta["values"]
+
+            tk.Label(frame, text=label).pack(anchor="w")
+
+            var = tk.StringVar()
+            combo = ttk.Combobox(
+                frame,
+                textvariable=var,
+                state="readonly",
+                values=values
+            )
+            combo.pack(fill="x", pady=2)
+            combo.bind("<<ComboboxSelected>>", self.save_metadata)
+
+            self.text_vars[key] = var
+            self.dropdown_details[key] = combo
+
+    def finish(self):
+        self.sqlgeneration(self.working_data)
+
+
+    #---Placeholder for sql generation---
+    def sqlgeneration(self, data):
+        print(data)

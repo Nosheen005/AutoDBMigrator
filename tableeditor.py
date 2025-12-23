@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
-
 from excel_reader import read_excel_for_controller, ExcelReadError
-from sql_generator import generate_create_table_sql
+import copy
+
 
 
 class TableEditor(tk.Frame):
@@ -14,11 +14,10 @@ class TableEditor(tk.Frame):
         self.grid_rowconfigure(2, weight=1)
 
         # Internal storage:
-        # - self.tables_data: {table_name: [col1, col2, ...]} for THIS screen
         self.tables_data: dict[str, list[str]] = {}
-        self.table_frames = {}       # {table_name: LabelFrame}
-        self.table_listboxes = {}    # {table_name: Listbox}
-        self.move_dropdowns = {}     # {table_name: Combobox}
+        self.table_frames = {}       
+        self.table_listboxes = {}    
+        self.move_dropdowns = {}     
 
         # Title
         label = tk.Label(self, text="Table Editor", font=("Arial", 14))
@@ -43,14 +42,14 @@ class TableEditor(tk.Frame):
 
         tk.Button(
             button_frame,
-            text="Reload from Excel",
-            command=self.load_from_excel
+            text="Refresh Page",
+            command=self.refresh
         ).pack(side="left", padx=5)
 
         tk.Button(
             button_frame,
-            text="Finish",
-            command=self.finish
+            text="Next",
+            command=self.go_next
         ).pack(side="left", padx=5)
 
         # Canvas for tables
@@ -79,13 +78,11 @@ class TableEditor(tk.Frame):
         self.tables_canvas.bind("<Enter>", lambda e: self.tables_canvas.bind_all("<MouseWheel>", self._on_mousewheel))
         self.tables_canvas.bind("<Leave>", lambda e: self.tables_canvas.unbind_all("<MouseWheel>"))
 
-    # ------------- called by controller when this frame is shown -------------
-    def on_show(self):
-        """
-        This will be called by the main controller when the TableEditor
-        screen is shown. It loads the latest data from Excel.
-        """
+    # ------------- Refreshing window with new data -------------
+    def refresh(self):
         self.load_from_excel()
+        self.clear_tables()
+        self.populate_tables()
 
     # ---------------- Load tables from Excel via excel_reader ----------------
     def load_from_excel(self):
@@ -94,17 +91,10 @@ class TableEditor(tk.Frame):
         from the Excel file, then rebuild the UI.
         """
         try:
-            # This uses:
-            #   controller.filepath
-            #   controller.tables_data  (ranges from ColumnSelector)
             self.tables_data = read_excel_for_controller(self.controller)
         except ExcelReadError as exc:
             messagebox.showerror("Excel Read Error", str(exc))
             return
-
-        # Clear existing GUI before repopulating
-        self.clear_tables()
-        self.populate_tables()
 
     # ---------------- Clear all existing table widgets ----------------
     def clear_tables(self):
@@ -309,16 +299,6 @@ class TableEditor(tk.Frame):
             self.refresh_table_controls(t)
         self.reposition_tables()
 
-    # ---------------- Finish Placeholder ----------------
-    #def finish(self):
-        # For now just show the resulting structure
-        # Later you can send this to the next step (DB migration etc.)
-       # messagebox.showinfo("Tables Result", repr(self.tables_data))
-    
-
-    # sql script generator 
-
-
-    def finish(self):
-        sql_script = generate_create_table_sql(self.tables_data)
-        messagebox.showinfo("Generated SQL Script", sql_script)
+    def go_next(self):
+        self.controller.detailsdata = copy.deepcopy(self.tables_data)
+        self.controller.show_frame("ColumnDetails")

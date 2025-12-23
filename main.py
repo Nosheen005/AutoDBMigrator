@@ -2,6 +2,7 @@ import tkinter as tk
 from welcomescreen import WelcomeScreen
 from columnselector import ColumnSelector
 from tableeditor import TableEditor
+from columndetails import ColumnDetails
 from excel_reader import read_excel_for_controller, ExcelReadError
 
 
@@ -15,6 +16,7 @@ class App(tk.Tk):
 
         self.filepath = None
         self.tables_data = {}
+        self.detailsdata = {}
 
         # Use grid, NOT pack
         container = tk.Frame(self)
@@ -30,7 +32,7 @@ class App(tk.Tk):
 
         self.frames = {}
 
-        for Screen in (WelcomeScreen, ColumnSelector, TableEditor):
+        for Screen in (WelcomeScreen, ColumnSelector, TableEditor, ColumnDetails):
             screen_name = Screen.__name__
             frame = Screen(parent=container, controller=self)
             self.frames[screen_name] = frame
@@ -43,11 +45,8 @@ class App(tk.Tk):
     def show_frame(self, screen_name):
         frame = self.frames[screen_name]
         frame.tkraise()
-        # NEW / UPDATED PART STARTS HERE
-        # If the frame defines an on_show() method, call it
-        if hasattr(frame, "on_show"):
-            frame.on_show()
-        # NEW / UPDATED PART ENDS HERE 
+        if hasattr(frame, "refresh"):
+            frame.refresh()
 
 
 if __name__ == "__main__":
