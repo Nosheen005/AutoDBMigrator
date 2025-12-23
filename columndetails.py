@@ -22,7 +22,7 @@ dropdown_config = {
         "values": [],
         "default": "",
         "depends_on": "key",
-        "depend_value": "Foreign Key"
+        "depends_value": "Foreign Key"
     },
     "references_column": {
         "label": "References Column",
@@ -295,18 +295,16 @@ class ColumnDetails(tk.Frame):
         for key, meta in config.items():
             label = meta["label"]
             values = meta["values"]
-            depends_on = meta.get("depends_on")
-            depends_value = meta.get("depends_value")
+            depends_on = meta.get("depends_on", False)
+            depends_value = meta.get("depends_value", False)
             active = True
 
             if depends_on:
                 parent_value = meta_state.get(depends_on, "")
-                if depends_value is not None:
-                    if parent_value != depends_value:
-                        active = False
+                if depends_value:
+                    active = (parent_value == depends_value)
                 else:
-                    if not parent_value:
-                        active = False
+                    active = bool(parent_value and parent_value != "None")
 
             if active:
                 if key == "references_table":
