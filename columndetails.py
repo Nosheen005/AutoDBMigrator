@@ -21,7 +21,8 @@ dropdown_config = {
         "label": "References Table",
         "values": [],
         "default": "",
-        "depends_on": "key"
+        "depends_on": "key",
+        "depend_value": "Foreign Key"
     },
     "references_column": {
         "label": "References Column",
@@ -117,7 +118,7 @@ class ColumnDetails(tk.Frame):
         self.details_panel.grid(row=0, column=2, sticky="nsew", padx=5)
 
     # =====================
-    # Refresh
+    # Refresh the page
     # =====================
 
     def refresh(self):
@@ -125,15 +126,14 @@ class ColumnDetails(tk.Frame):
         self.table_listbox.delete(0, "end")
         self.column_listbox.delete(0, "end")
 
-        self.detailscreation(self.details_panel, dropdown_config)
-
         for table, columns in self.controller.detailsdata.items():
             self.working_data[table] = {
                 col: {
                     "type": "VARCHAR",
                     "nullable": "False",
                     "key": "None",
-                    "references": {"table": "", "column": ""}
+                    "reference_table": "",
+                    "reference_column": ""
                 }
                 for col in columns
             }
@@ -162,6 +162,12 @@ class ColumnDetails(tk.Frame):
         for col in self.working_data[self.selected_table]:
             self.column_listbox.insert("end", col)
 
+        for child in self.details_panel.winfo_children():
+            child.destroy()
+
+        self.text_vars.clear()
+        self.dropdown_details.clear()
+
         self.set_details_panel_state("disabled")
 
     def on_column_select(self, event):
@@ -171,6 +177,8 @@ class ColumnDetails(tk.Frame):
         self.selected_column = self.column_listbox.get(
             self.column_listbox.curselection()[0]
         )
+
+        self.detailscreation(self.details_panel, dropdown_config)
 
         meta = self.working_data[self.selected_table][self.selected_column]
 
@@ -189,51 +197,44 @@ class ColumnDetails(tk.Frame):
         if not self.selected_table or not self.selected_column:
             return
 
-        key_type = self.text_vars.get("key", tk.StringVar()).get()
+        key_var = self.text_vars.get("key")
+        if not key_var:
+            return
+        
+        key_type = key_var.get()
         meta = self.working_data[self.selected_table][self.selected_column]
 
-        if key_type == "Foreign Key":
-            tables = [t for t in self.working_data if t != self.selected_table]
-            self.dropdown_details["references_table"]["values"] = tables
-            self.dropdown_details["references_table"].configure(state="readonly")
-            self.dropdown_details["references_column"].configure(state="readonly")
-        else:
-            meta["references"] = {"table": "", "column": ""}
-            self.text_vars["references_table"].set("")
-            self.text_vars["references_column"].set("")
-            self.dropdown_details["references_table"].configure(state="disabled")
-            self.dropdown_details["references_column"].configure(state="disabled")
+        meta["key"] = key_type
 
-            self.remove_invalid_foreign_keys()
+        if key_type != "Foreign Key":
+            meta["reference_table"] = ""
+            meta["reference_column"] = ""
 
         self.save_metadata()
 
     def update_ref_columns(self, event=None):
+
         if not self.selected_table or not self.selected_column:
             return
-
-        ref_table = self.text_vars["references_table"].get()
-
-        if not ref_table:
-            self.dropdown_details["references_column"]["values"] = []
+        
+        ref_table_var = self.text_vars.get("references_table")
+        if not ref_table_var:
             return
 
-        pk_columns = [
-            col for col, meta in self.working_data[ref_table].items()
-            if meta.get("key") == "Primary Key"
-        ]
+        ref_table = ref_table_var.get()
+        meta = self.working_data[self.selected_table][self.selected_column]
 
-        self.dropdown_details["references_column"]["values"] = pk_columns
-        self.text_vars["references_column"].set("")
+        meta["reference_table"] = ref_table
+        meta["reference_column"] = ""
+
+        self.save_metadata()
 
 
     def remove_invalid_foreign_keys(self):
-        for table, cols in self.working_data.items():
-            for col, meta in cols.items():
-                ref = meta.get("references", {})
-
-                ref_table = ref.get("table")
-                ref_column = ref.get("column")
+        for table, cols in self.working_data.items(): #Fetch list of columns from each table
+            for col, meta in cols.items():            #Fetch metadata of each column
+                ref_table = meta.get("reference_table")
+                ref_column = meta.get("reference_column")
 
                 if not ref_table or not ref_column:
                     continue
@@ -243,7 +244,8 @@ class ColumnDetails(tk.Frame):
                     ref_column not in self.working_data[ref_table] or
                     self.working_data[ref_table][ref_column].get("key") != "Primary Key"
                 ):
-                    meta["references"] = {"table": "", "column": ""}
+                    meta["reference_table"] = ""
+                    meta["reference_column"] = ""
                     meta["key"] = "None"
 
     # =====================
@@ -258,6 +260,9 @@ class ColumnDetails(tk.Frame):
 
         for key, var in self.text_vars.items():
             metadata[key] = var.get()
+
+        self.remove_invalid_foreign_keys()
+        self.detailscreation(self.details_panel, dropdown_config)
 
 
     # =====================
@@ -281,25 +286,63 @@ class ColumnDetails(tk.Frame):
 
         self.text_vars.clear()
         self.dropdown_details.clear()
+    
+        if not self.selected_table or not self.selected_column:
+            return
+        
+        meta_state = self.working_data[self.selected_table][self.selected_column]
 
         for key, meta in config.items():
             label = meta["label"]
             values = meta["values"]
+            depends_on = meta.get("depends_on")
+            depends_value = meta.get("depends_value")
+            active = True
 
-            tk.Label(frame, text=label).pack(anchor="w")
+            if depends_on:
+                parent_value = meta_state.get(depends_on, "")
+                if depends_value is not None:
+                    if parent_value != depends_value:
+                        active = False
+                else:
+                    if not parent_value:
+                        active = False
 
-            var = tk.StringVar()
-            combo = ttk.Combobox(
-                frame,
-                textvariable=var,
-                state="readonly",
-                values=values
-            )
-            combo.pack(fill="x", pady=2)
-            combo.bind("<<ComboboxSelected>>", self.save_metadata)
+            if active:
+                if key == "references_table":
+                    values = [t for t in self.working_data if t != self.selected_table]
 
-            self.text_vars[key] = var
-            self.dropdown_details[key] = combo
+                elif key == "references_column":
+                    ref_table = meta_state.get("reference_table")
+                    if ref_table:
+                        values = [
+                            col for col, col_meta in self.working_data[ref_table].items()
+                            if col_meta.get("key") == "Primary Key"
+                        ]
+
+                tk.Label(frame, text=label).pack(anchor="w")
+
+                var = tk.StringVar()
+                combo = ttk.Combobox(
+                    frame,
+                    textvariable=var,
+                    state="readonly",
+                    values=values
+                )
+                var.set(meta_state.get(key, meta.get("default", "")))
+
+                combo.pack(fill="x", pady=2)
+                combo.bind("<<ComboboxSelected>>", self.save_metadata)
+
+                if key == "key":
+                    combo.bind("<<ComboboxSelected>>", self.on_key_type_change)
+
+                if key == "references_table":
+                    combo.bind("<<ComboboxSelected>>", self.update_ref_columns)
+
+
+                self.text_vars[key] = var
+                self.dropdown_details[key] = combo
 
     def finish(self):
         self.sqlgeneration(self.working_data)
