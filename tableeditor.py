@@ -74,7 +74,7 @@ class TableEditor(tk.Frame):
             lambda e: self.tables_canvas.configure(scrollregion=self.tables_canvas.bbox("all"))
         )
 
-        # Bind mouse wheel scrolling anywhere over the canvas
+        # Bind mouse wheel scrolling
         self.tables_canvas.bind("<Enter>", lambda e: self.tables_canvas.bind_all("<MouseWheel>", self._on_mousewheel))
         self.tables_canvas.bind("<Leave>", lambda e: self.tables_canvas.unbind_all("<MouseWheel>"))
 
@@ -113,12 +113,12 @@ class TableEditor(tk.Frame):
         self.tables_canvas.itemconfig(self._inner_window, width=event.width)
         self.reposition_tables()
 
-    # ---------------- Populate tables (from self.tables_data) ----------------
+    # ---------------- Populate tables ----------------
     def populate_tables(self):
         for table_name, columns in self.tables_data.items():
             self.create_table_frame(table_name, columns)
 
-        # Update all dropdowns once all tables exist
+        # Update all dropdowns
         for table_name in self.table_frames.keys():
             self.update_dropdown_options(table_name)
 
@@ -127,7 +127,7 @@ class TableEditor(tk.Frame):
     # ---------------- Create single table frame ----------------
     def create_table_frame(self, table_name, columns):
         frame = tk.LabelFrame(self.inner_frame, text=table_name, padx=10, pady=10)
-        frame.pack_propagate(True)  # Allow frame to resize based on content
+        frame.pack_propagate(True)
 
         listbox = tk.Listbox(frame, selectmode="extended", height=min(10, len(columns) or 1))
         listbox.pack(fill="both", expand=True)
@@ -284,7 +284,7 @@ class TableEditor(tk.Frame):
 
     # ---------------- Delete Table ----------------
     def delete_table(self, table_name):
-        if self.tables_data[table_name]:  # Safety check
+        if self.tables_data[table_name]:
             return
 
         self.table_frames[table_name].destroy()

@@ -4,34 +4,78 @@ from tkinter import ttk
 dropdown_config = {
     "type": {
         "label": "Type",
-        "values": ["INT", "VARCHAR", "DATE", "FLOAT"],
+        "values": [
+            "BOOLEAN",
+            "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
+            "FLOAT", "DOUBLE",
+            "DATE", "TIMESTAMP",
+            "VARCHAR", "BLOB"
+        ],
         "default": "VARCHAR"
+    },
+    "length": {
+        "label": "Length",
+        "values": [],
+        "default": "",
+        "depends_on": "type",
+        "depend_value": "VARCHAR"
     },
     "nullable": {
         "label": "Nullable",
         "values": ["True", "False"],
         "default": "False"
     },
+    "default": {
+        "label": "Default Value",
+        "values": [],
+        "default": ""
+    },
     "key": {
         "label": "Key Type",
         "values": ["None", "Primary Key", "Foreign Key"],
         "default": "None"
+    },
+       "auto_increment": {
+        "label": "Auto Increment",
+        "values": ["True", "False"],
+        "default": "False",
+        "depends_on": "key",
+        "depend_value": "PRIMARY KEY"
     },
     "references_table": {
         "label": "References Table",
         "values": [],
         "default": "",
         "depends_on": "key",
-        "depends_value": "Foreign Key"
+        "depend_value": "Foreign Key"
     },
     "references_column": {
         "label": "References Column",
         "values": [],
         "default": "",
         "depends_on": "references_table"
+    },
+    "unique": {
+        "label": "Unique",
+        "values": ["True", "False"],
+        "default": "False"
+    },
+    "comment": {
+        "label": "Comment",
+        "values": [],
+        "default": ""
+    },
+    "check": {
+        "label": "Check constraint",
+        "values": [],
+        "default": ""
+    },
+    "checkvalue": {
+        "label": "Custom Check Function",
+        "value": [],
+        "default": ""
     }
 }
-
 
 
 class ColumnDetails(tk.Frame):
@@ -109,13 +153,27 @@ class ColumnDetails(tk.Frame):
         # COLUMN DETAILS
         # =====================
 
-        self.details_panel = tk.LabelFrame(
-            main_frame,
-            text="Column Settings",
-            padx=10,
-            pady=10
-        )
-        self.details_panel.grid(row=0, column=2, sticky="nsew", padx=5)
+        # Create a container for details
+        details_container = tk.Frame(main_frame)
+        details_container.grid(row=0, column=2, sticky="nsew", padx=5, pady =5)
+        details_container.grid_propagate(False)
+        
+        # Create a canvas inside the container
+        self.details_canvas = tk.Canvas(details_container, borderwidth=0)
+        self.details_canvas.pack(side="left", fill="both", expand=True)
+
+        # Add a vertical scrollbar linked to the canvas
+        v_scroll = tk.Scrollbar(details_container, orient="vertical", command=self.details_canvas.yview)
+        v_scroll.pack(side="right", fill="y")
+        self.details_canvas.configure(yscrollcommand=v_scroll.set)
+
+        # Create the frame that will hold the column settings
+        self.details_panel = tk.Frame(self.details_canvas, padx=10, pady=10)
+        self.details_window = self.details_canvas.create_window((0, 0), window=self.details_panel, anchor="nw")
+
+        self.details_panel.bind("<Configure>", self.on_frame_configure)
+        self.details_canvas.bind("<Configure>", self.on_canvas_configure)
+        self.details_canvas.bind_all("<MouseWheel>", self.on_mousewheel)
 
     # =====================
     # Refresh the page
@@ -143,6 +201,23 @@ class ColumnDetails(tk.Frame):
         self.selected_column = None
         self.set_details_panel_state("disabled")
 
+    # =====================
+    # Scrollbar Handlers
+    # =====================
+
+    # Make the canvas scrollable when content changes
+    def on_frame_configure(self, event):
+        self.details_canvas.configure(scrollregion=self.details_canvas.bbox("all"))
+
+    # Make the frame expand to match the canvas width
+    def on_canvas_configure(self, event):
+        canvas_width = event.width
+        self.details_canvas.itemconfig(self.details_window, width=canvas_width)
+
+    # Optional: allow scrolling with mouse wheel
+    def on_mousewheel(self, event):
+        self.details_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+    
 
     # =====================
     # Selection Handlers

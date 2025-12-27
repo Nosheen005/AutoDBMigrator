@@ -18,15 +18,12 @@ class App(tk.Tk):
         self.tables_data = {}
         self.detailsdata = {}
 
-        # Use grid, NOT pack
         container = tk.Frame(self)
         container.grid(row=0, column=0, sticky="nsew")
 
-        # Allow the root window to expand its content
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        # Allow container to expand its content
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
@@ -36,8 +33,6 @@ class App(tk.Tk):
             screen_name = Screen.__name__
             frame = Screen(parent=container, controller=self)
             self.frames[screen_name] = frame
-
-            # Make every screen fill container fully
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame("WelcomeScreen")

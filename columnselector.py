@@ -49,13 +49,8 @@ class ColumnSelector(tk.Frame):
         self.inner_frame = tk.Frame(self.tables_canvas)
         self._inner_window = self.tables_canvas.create_window((0, 0), window=self.inner_frame, anchor="nw")
 
-        # Bind resize to reflow tables
         self.tables_canvas.bind("<Configure>", self._on_canvas_configure)
-
-        # Make inner_frame resize its scrollregion
         self.inner_frame.bind("<Configure>", lambda e: self.tables_canvas.configure(scrollregion=self.tables_canvas.bbox("all")))
-
-        # Optional: mouse wheel scrolling
         self.tables_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
 
         # Store table frames
@@ -76,11 +71,10 @@ class ColumnSelector(tk.Frame):
 
     # ------------------------ Canvas helper ------------------------
     def _on_canvas_configure(self, event):
-        # Set inner_frame width to canvas width so grid can use it
+        # Set inner_frame width to canvas width for grid
         canvas_width = event.width
-        # update the inner window width so inner_frame.winfo_width() matches canvas width
+        # update the inner window width
         self.tables_canvas.itemconfig(self._inner_window, width=canvas_width)
-        # reposition tables based on new width
         self.reposition_tables()
 
     # ---------------- Table Unit -----------------
@@ -134,7 +128,6 @@ class ColumnSelector(tk.Frame):
         table_number = len(self.table_frames) + 1
         new_table = self.create_table_unit(table_number)
         self.table_frames.append(new_table)
-        # We grid into inner_frame inside reposition_tables
         self.reposition_tables()
 
     def remove_table(self):
@@ -166,10 +159,10 @@ class ColumnSelector(tk.Frame):
             self.after(50, self.reposition_tables)
             return
 
-        # measure a sample table width (requested width) + padding
+        # measure a sample table width
         sample = self.table_frames[0]
         sample.update_idletasks()
-        table_width = sample.winfo_reqwidth() + 20  # buffer for padding
+        table_width = sample.winfo_reqwidth() + 20
 
         max_columns = max(canvas_width // table_width, 1)
 
@@ -183,11 +176,10 @@ class ColumnSelector(tk.Frame):
             col = index % max_columns
             frame.grid(row=row, column=col, padx=10, pady=10, sticky="n")
 
-        # configure column weights so frames spread nicely
+        # configure column weights
         for c in range(max_columns):
             self.inner_frame.grid_columnconfigure(c, weight=1)
 
-        # update canvas scrollregion if needed
         self.tables_canvas.configure(scrollregion=self.tables_canvas.bbox("all"))
 
     # ---------------- Data Collection ----------------
