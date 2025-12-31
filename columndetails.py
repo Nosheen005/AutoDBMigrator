@@ -15,7 +15,7 @@ dropdown_config = {
     },
     "length": {
         "label": "Length",
-        "values": [],
+        "values": [5, 10, 15, 25, 50, 255],
         "default": "",
         "depends_on": "type",
         "depend_value": "VARCHAR"
@@ -25,22 +25,17 @@ dropdown_config = {
         "values": ["True", "False"],
         "default": "False"
     },
-    "default": {
-        "label": "Default Value",
-        "values": [],
-        "default": ""
-    },
     "key": {
         "label": "Key Type",
         "values": ["None", "Primary Key", "Foreign Key"],
         "default": "None"
     },
-       "auto_increment": {
+    "auto_increment": {
         "label": "Auto Increment",
         "values": ["True", "False"],
         "default": "False",
         "depends_on": "key",
-        "depend_value": "PRIMARY KEY"
+        "depend_value": "Primary Key"
     },
     "references_table": {
         "label": "References Table",
@@ -59,21 +54,6 @@ dropdown_config = {
         "label": "Unique",
         "values": ["True", "False"],
         "default": "False"
-    },
-    "comment": {
-        "label": "Comment",
-        "values": [],
-        "default": ""
-    },
-    "check": {
-        "label": "Check constraint",
-        "values": [],
-        "default": ""
-    },
-    "checkvalue": {
-        "label": "Custom Check Function",
-        "value": [],
-        "default": ""
     }
 }
 
