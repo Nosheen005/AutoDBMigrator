@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
+
 
 dropdown_config = {
     "type": {
@@ -398,9 +400,16 @@ class ColumnDetails(tk.Frame):
                 self.dropdown_details[key] = combo
 
     def finish(self):
-        self.sqlgeneration(self.working_data)
+        sql_text = "Example Text"   ##nosheenfunction(self.working_data)
 
+        file_path = filedialog.asksaveasfilename(
+            title="Save SQL Script",
+            defaultextension=".sql",
+            filetypes=[("SQL files", "*.sql"), ("All files", "*.*")]
+        )
 
-    #---Placeholder for sql generation---
-    def sqlgeneration(self, data):
-        print(data)
+        if not file_path:
+            return   #Canceled path selection
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(sql_text)
