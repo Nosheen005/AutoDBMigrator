@@ -42,3 +42,189 @@ workingdata = {
     "Shippers": ["ShipperID", "CompanyName", "Phone"]
 }
 }
+
+{'TestTable1': {
+    'Flera kommuner': {
+        'type': 'INTEGER', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'Foreign Key', 
+        'auto_increment': 'False', 
+        'references_table': 'TestTable2', 
+        'references_column': 'Flera kommuner', 
+        'unique': 'False'
+        }, 
+    'Antal kommuner': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Län': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Kommun': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Utbildningsområde': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Utbildningsnamn': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Typ av examen': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'YH-poäng': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Studieform': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Studietakt %': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Utbildningsanordnare administrativ enhet': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Sökt antal omgångar': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Sökt antal platser per omgång': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Sökt antal platser totalt': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Diarienummer': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'Primary Key', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'True'
+        }
+    }, 
+'TestTable2': {
+    'Flera kommuner': {
+        'type': 'INTEGER', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'Primary Key', 
+        'auto_increment': 'True', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Antal kommuner': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }, 
+    'Län': {
+        'type': 'VARCHAR', 
+        'length': '255', 
+        'nullable': 'False', 
+        'key': 'None', 
+        'auto_increment': 'False', 
+        'references_table': '', 
+        'references_column': '', 
+        'unique': 'False'
+        }
+    }
+}

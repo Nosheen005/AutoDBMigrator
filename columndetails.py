@@ -15,8 +15,8 @@ dropdown_config = {
     },
     "length": {
         "label": "Length",
-        "values": [5, 10, 15, 25, 50, 255],
-        "default": "",
+        "values": ["5", "10", "15", "25", "50", "255"],
+        "default": "255",
         "depends_on": "type",
         "depend_value": "VARCHAR"
     },
@@ -92,7 +92,7 @@ class ColumnDetails(tk.Frame):
         tk.Button(
             top_frame,
             text="Finish",
-            command=lambda: self.finish(self)
+            command=lambda: self.finish()
         ).pack(side="left", padx=5)
 
         # =====================
@@ -165,21 +165,22 @@ class ColumnDetails(tk.Frame):
         self.column_listbox.delete(0, "end")
 
         for table, columns in self.controller.detailsdata.items():
-            self.working_data[table] = {
-                col: {
-                    "type": "VARCHAR",
-                    "nullable": "False",
-                    "key": "None",
-                    "reference_table": "",
-                    "reference_column": ""
-                }
-                for col in columns
-            }
+            self.working_data[table] = {}
+
+            for col in columns:
+                self.working_data[table][col] = self.default_column_meta()
+            
             self.table_listbox.insert("end", table)
 
         self.selected_table = None
         self.selected_column = None
         self.set_details_panel_state("disabled")
+
+    def default_column_meta(self):
+        return {
+            key: meta.get("default", "")
+            for key, meta in dropdown_config.items()
+        }
 
     # =====================
     # Scrollbar Handlers
@@ -262,8 +263,8 @@ class ColumnDetails(tk.Frame):
         meta["key"] = key_type
 
         if key_type != "Foreign Key":
-            meta["reference_table"] = ""
-            meta["reference_column"] = ""
+            meta["references_table"] = ""
+            meta["references_column"] = ""
 
         self.save_metadata()
 
@@ -279,8 +280,8 @@ class ColumnDetails(tk.Frame):
         ref_table = ref_table_var.get()
         meta = self.working_data[self.selected_table][self.selected_column]
 
-        meta["reference_table"] = ref_table
-        meta["reference_column"] = ""
+        meta["references_table"] = ref_table
+        meta["references_column"] = ""
 
         self.save_metadata()
 
@@ -348,25 +349,24 @@ class ColumnDetails(tk.Frame):
         meta_state = self.working_data[self.selected_table][self.selected_column]
 
         for key, meta in config.items():
-            label = meta["label"]
-            values = meta["values"]
-            depends_on = meta.get("depends_on", False)
-            depends_value = meta.get("depends_value", False)
-            active = True
 
-            if depends_on:
-                parent_value = meta_state.get(depends_on, "")
-                if depends_value:
-                    active = (parent_value == depends_value)
+            active = True
+            if "depends_on" in meta:
+                parent_value = meta_state.get(meta["depends_on"])
+                if "depend_value" in meta:
+                    active = (parent_value == meta["depend_value"])
                 else:
-                    active = bool(parent_value and parent_value != "None")
+                    active = parent_value not in (None, "")
 
             if active:
+                label = meta["label"]
+                values = meta["values"]
+
                 if key == "references_table":
                     values = [t for t in self.working_data if t != self.selected_table]
 
                 elif key == "references_column":
-                    ref_table = meta_state.get("reference_table")
+                    ref_table = meta_state.get("references_table")
                     if ref_table:
                         values = [
                             col for col, col_meta in self.working_data[ref_table].items()
