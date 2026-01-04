@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from sql_generator import generate_sql_from_working_data # added newly N
+
 
 
 dropdown_config = {
@@ -399,17 +401,30 @@ class ColumnDetails(tk.Frame):
                 self.text_vars[key] = var
                 self.dropdown_details[key] = combo
 
-    def finish(self):
-        sql_text = "Example Text"   ##nosheenfunction(self.working_data)
+    #def finish(self):
+        #sql_text = "Example Text"   ##nosheenfunction(self.working_data)
 
-        file_path = filedialog.asksaveasfilename(
-            title="Save SQL Script",
-            defaultextension=".sql",
-            filetypes=[("SQL files", "*.sql"), ("All files", "*.*")]
-        )
-
-        if not file_path:
-            return   #Canceled path selection
+        #file_path = filedialog.asksaveasfilename(
+           # title="Save SQL Script",
+            #defaultextension=".sql",
+          #  filetypes=[("SQL files", "*.sql"), ("All files", "*.*")]
         
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(sql_text)
+
+        #if not file_path:
+            #return   #Canceled path selection
+        
+       # with open(file_path, "w", encoding="utf-8") as f:
+            #f.write(sql_text)
+
+    def finish(self): # added newly
+        sql_text = generate_sql_from_working_data(self.working_data)
+
+    # store on controller so SQLPreview can show it
+        self.controller.sql_text = sql_text
+
+    # go to SQL screen
+        self.controller.show_frame("SQLPreview")
+
+
+    
+    
